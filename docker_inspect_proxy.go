@@ -62,24 +62,24 @@ func setupFlags() {
 		envEndpoint = os.Getenv("DOCKER_HOST")
 	}
 
-	if os.Getenv("DOCKER_TLS_CACERT") == "" {
+	if os.Getenv("DOCKER_TLS_CACERT") != "" {
 		envCacert = os.Getenv("DOCKER_TLS_CACERT")
 	}
 
-	if os.Getenv("DOCKER_TLS_CERT") == "" {
+	if os.Getenv("DOCKER_TLS_CERT") != "" {
 		envCert = os.Getenv("DOCKER_TLS_CERT")
 	}
 
-	if os.Getenv("DOCKER_TLS_KEY") == "" {
-		envKey = os.Getenv("DOCKER_TLS_Key")
+	if os.Getenv("DOCKER_TLS_KEY") != "" {
+		envKey = os.Getenv("DOCKER_TLS_KEY")
 	}
 
 	flag.IntVar(&BindPort, "p", envBindPort, "bind port")
-	flag.BoolVar(&TlsVerify, "tlsVerify", envTlsverify, "bind port")
+	flag.BoolVar(&TlsVerify, "tlsVerify", envTlsverify, "docker tls verify")
 	flag.StringVar(&Endpoint, "h", envEndpoint, "docker host")
-	flag.StringVar(&Cert, "cert", envCert, "docker host")
-	flag.StringVar(&Key, "key", envKey, "docker host")
-	flag.StringVar(&Cacert, envCacert, "./cacert.pem", "docker host")
+	flag.StringVar(&Cert, "cert", envCert, "docker tls cert")
+	flag.StringVar(&Key, "key", envKey, "docker tls key")
+	flag.StringVar(&Cacert, "cacert", envCacert, "docker tls cacert")
 	flag.Parse()
 }
 
@@ -112,6 +112,7 @@ func containerHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	setupFlags()
 	if TlsVerify || Cert != "" {
+		log.Printf("Connecting to TLS secured docker through endpoint: %s.", Endpoint)
 		client, err := docker.NewTLSClient(Endpoint, Cert, Key, Cacert)
 		if err != nil {
 			log.Fatal("Failed to connect to docker:", err)
@@ -120,7 +121,7 @@ func main() {
 			Client = client
 		}
 	} else {
-		log.Printf("Connecting to docker through endpoint: %s.", Endpoint)
+		log.Printf("Connecting to insecure docker through endpoint: %s.", Endpoint)
 		client, err := docker.NewClient(Endpoint)
 		if err != nil {
 			log.Fatal("Failed to connect to docker:", err)
