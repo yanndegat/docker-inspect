@@ -30,8 +30,7 @@ build-no-cache: test git-pull build/docker-inspect
 push: ##  Push last generated build
 push: test
 	@test -s .last_tag || (echo You need to build first ; exit 1)
-	docker push $(IMAGE):`cat .last_tag` && \
-	@rm -f .last_tag
+	@docker push $(IMAGE):`cat .last_tag`
 
 push-latest: ## Push local latest tag
 push-latest: test
