@@ -174,14 +174,14 @@ func hostHandler(w http.ResponseWriter, r *http.Request) {
 		json, err := json.Marshal(Host)
 		if err != nil {
 			log.Println("Error while marshalling host config", err)
-			http.Error(w, fmt.Sprintf("err:%s", err), 500)
+			http.Error(w, fmt.Sprintf("err:%s", err), err.(*docker.Error).Status)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(json)
 	}
 }
 
-var containerValidPath = regexp.MustCompile("^/container/([a-zA-Z0-9]+)$")
+var containerValidPath = regexp.MustCompile("^/container/([a-zA-Z0-9_-]+)$")
 
 func containerHandler(w http.ResponseWriter, r *http.Request) {
 	m := containerValidPath.FindStringSubmatch(r.URL.Path)
@@ -192,8 +192,16 @@ func containerHandler(w http.ResponseWriter, r *http.Request) {
 	containerId := m[1]
 	container, err := Client.InspectContainer(containerId)
 	if err != nil {
-		log.Println("Error while inspecting container", err)
-		http.Error(w, fmt.Sprintf("err:%s", err), 500)
+		log.Println("Error while inspecting container: ", err)
+		switch err.(type) {
+		case *docker.Error:
+			http.Error(w, fmt.Sprintf("err: %s", err), err.(*docker.Error).Status)
+		case *docker.NoSuchContainer:
+			http.Error(w, fmt.Sprintf("err: %s", err), 404)
+		default:
+			http.Error(w, fmt.Sprintf("err: %s", err), 500)
+		}
+		return
 	}
 
 	json, err := json.Marshal(container)
